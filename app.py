@@ -2,190 +2,245 @@ import streamlit as st
 import random
 
 # Configurazione Pagina
-st.set_page_config(page_title="Tuscan Meal Planner & SvuotaFrigo", page_icon="🍲", layout="wide")
+st.set_page_config(page_title="Tuscan Meal Planner & Spesa Smart", page_icon="🍲", layout="wide")
 
-st.title("🍲 Meal Planner & Schiscetta Smart")
-st.caption("Cucina toscana e mediterranea, zero noia, zero appesantimento e spesa pronta!")
+st.title("🍲 Tuscan Meal Planner & Schiscetta Smart")
+st.caption("Cucina toscana e mediterranea, zero noia, zero appesantimento e spesa sotto controllo.")
 
-# --- DATABASE INGREDIENTI E RICETTE ---
-PROTEINE = {
-    "Pollo": {"prezzo_al_kg": 9.50, "unita": "g"},
-    "Tacchino": {"prezzo_al_kg": 10.50, "unita": "g"},
-    "Maiale (Lonza/Arista)": {"prezzo_al_kg": 8.00, "unita": "g"},
-    "Manzo (Macinato/Bistecca)": {"prezzo_al_kg": 14.00, "unita": "g"},
-    "Ceci": {"prezzo_al_kg": 3.00, "unita": "g"},
-    "Fagioli Canellini/Borbotti": {"prezzo_al_kg": 3.00, "unita": "g"},
-    "Uova": {"prezzo_unita": 0.35, "unita": "pz"}
+# --- DATABASE INGREDIENTI E PREZZI (al kg o al pezzo) ---
+ANAGRAFICA_SPESA = {
+    # Proteine
+    "Pollo (Petto/Bocconcini)": {"categoria": "Proteine", "prezzo_unita": 9.50, "unita": "kg"},
+    "Tacchino (Straccetti)": {"categoria": "Proteine", "prezzo_unita": 10.50, "unita": "kg"},
+    "Maiale (Lonza/Arista)": {"categoria": "Proteine", "prezzo_unita": 8.00, "unita": "kg"},
+    "Manzo (Macinato magro)": {"categoria": "Proteine", "prezzo_unita": 14.00, "unita": "kg"},
+    "Ceci (barattolo)": {"categoria": "Proteine", "prezzo_unita": 1.50, "unita": "confezione"},
+    "Fagioli Cannellini (barattolo)": {"categoria": "Proteine", "prezzo_unita": 1.50, "unita": "confezione"},
+    "Uova": {"categoria": "Proteine", "prezzo_unita": 2.50, "unita": "confezione (6pz)"},
+    
+    # Carboidrati & Dispensa
+    "Riso Basmati": {"categoria": "Carboidrati", "prezzo_unita": 3.00, "unita": "kg"},
+    "Pasta corta (Fusilli/Penne)": {"categoria": "Carboidrati", "prezzo_unita": 1.80, "unita": "kg"},
+    "Pane di grano duro / Crostini": {"categoria": "Carboidrati", "prezzo_unita": 2.50, "unita": "kg"},
+    "Patate": {"categoria": "Carboidrati", "prezzo_unita": 1.50, "unita": "kg"},
+    "Piadine / Wrap integrali": {"categoria": "Carboidrati", "prezzo_unita": 2.00, "unita": "confezione"},
+    
+    # Verdure
+    "Zucchine": {"categoria": "Verdure", "prezzo_unita": 2.50, "unita": "kg"},
+    "Spinaci freschi": {"categoria": "Verdure", "prezzo_unita": 4.00, "unita": "kg"},
+    "Carote e Finocchi": {"categoria": "Verdure", "prezzo_unita": 2.20, "unita": "kg"},
+    "Melanzane / Peperoni": {"categoria": "Verdure", "prezzo_unita": 2.80, "unita": "kg"},
+    "Pomodorini": {"categoria": "Verdure", "prezzo_unita": 3.50, "unita": "kg"}
 }
 
+# --- DATABASE RICETTE ---
 RICETTE_CENA = [
     {
-        "nome": "Bocconcini di pollo al rosmarino, limone e vino bianco con patate in padella",
-        "proteina": "Pollo",
-        "carbo": "Patate",
-        "verdura": "Zucchine",
-        "aromi": "Rosmarino, aglio, vino bianco, limone",
-        "porzione_prot": 200, "porzione_carbo": 250,
-        "preparazione": "Rosola il pollo a cubetti con aglio e rosmarino. Sfuma col vino, aggiungi limone e servi con patate a cubetti saltate in padella."
+        "nome": "Bocconcini di pollo al rosmarino, limone e vino bianco con patate",
+        "proteina": "Pollo (Petto/Bocconcini)", "carbo": "Patate", "verdura": "Zucchine",
+        "tempo": "25 min", "difficoltà": "Facile",
+        "passaggi": "1. Taglia le patate a cubetti e cuocile in padella con un filo d'olio e sale (15 min).\n2. Infarina leggermente i bocconcini di pollo e rosolali in un'altra padella con aglio e abbondante rosmarino fresco.\n3. Sfuma con vino bianco e succo di limone.\n4. Unisci tutto e servi ben caldo."
     },
     {
-        "nome": "Straccetti di tacchino con salvia e pomodorini secchi su crema di cannellini",
-        "proteina": "Tacchino",
-        "carbo": "Pane / Crostini",
-        "verdura": "Spinaci saltati",
-        "aromi": "Salvia, aglio, olio EVO",
-        "porzione_prot": 200, "porzione_carbo": 80,
-        "preparazione": "Frulla i cannellini con salvia e un filo d'olio. Rosola il tacchino ad alta temperatura con salvia e unisci alla crema."
+        "nome": "Straccetti di tacchino con salvia e pomodorini su crema di cannellini",
+        "proteina": "Tacchino (Straccetti)", "carbo": "Pane di grano duro / Crostini", "verdura": "Spinaci freschi",
+        "tempo": "20 min", "difficoltà": "Facile",
+        "passaggi": "1. Frulla metà dei cannellini in barattolo con un goccio d'acqua, sale, pepe e un rametto di salvia.\n2. In padella scotta gli spinaci freschi con un filo d'olio (5 min).\n3. Cuoci gli straccetti di tacchino a fiamma viva con foglie di salvia e aglio.\n4. Componi il piatto stendendo la crema di cannellini sotto, il tacchino sopra e accompagna con pane tostato."
     },
     {
-        "nome": "Arista di maiale rosolata al finocchietto con carote glasse e finocchi",
-        "proteina": "Maiale (Lonza/Arista)",
-        "carbo": "Riso Basmati",
-        "verdura": "Carote e Finocchi",
-        "aromi": "Finocchietto selvatico, vino bianco, pepe",
-        "porzione_prot": 200, "porzione_carbo": 80,
-        "preparazione": "Cuoci la lonza a fettine sottili in padella antiaderente con finocchietto e vino. Accompagna con carote a rondelle."
+        "nome": "Arista di maiale al finocchietto con carote glassate",
+        "proteina": "Maiale (Lonza/Arista)", "carbo": "Riso Basmati", "verdura": "Carote e Finocchi",
+        "tempo": "20 min", "difficoltà": "Facile",
+        "passaggi": "1. Metti a lessare il riso basmati.\n2. Taglia finemente carote e finocchi.\n3. Rosola le fettine sottili di maiale in padella con semi di finocchietto selvatico, sfumando con vino bianco. Unisci le verdure e fai cuocere insieme."
     },
     {
-        "nome": "Polpette magre di manzo al timo e pomodoro fresco con melanzane",
-        "proteina": "Manzo (Macinato/Bistecca)",
-        "carbo": "Pasta / Crostini",
-        "verdura": "Melanzane / Peperoni",
-        "aromi": "Timo, aglio, alloro",
-        "porzione_prot": 180, "porzione_carbo": 90,
-        "preparazione": "Forma piccole polpette con sale, pepe e timo. Cuocile nel pomodoro fresco a fuoco vivo con foglie d'alloro."
+        "nome": "Polpette magre di manzo al timo con pomodorini saltati",
+        "proteina": "Manzo (Macinato magro)", "carbo": "Pasta corta (Fusilli/Penne)", "verdura": "Pomodorini",
+        "tempo": "30 min", "difficoltà": "Media",
+        "passaggi": "1. Impasta il macinato di manzo con sale, pepe e foglioline di timo fresco, formando piccole polpette.\n2. Metti su l'acqua per la pasta.\n3. In padella scotta i pomodorini tagliati a metà, poi unisci le polpette e rosolale bene su tutti i lati.\n4. Scola la pasta al dente e saltala direttamente nella padella con le polpette."
     },
     {
-        "nome": "Zuppa franta di ceci e fagioli con salvia, aglio e pasta corta",
-        "proteina": "Ceci",
-        "carbo": "Pasta",
-        "verdura": "Bieta / Cicoria",
-        "aromi": "Aglio, salvia, rosmarino, peperoncino",
-        "porzione_prot": 150, "porzione_carbo": 80,
-        "preparazione": "Soffriggi aglio e salvia, unisci i legumi, schiacciane una parte per fare la crema, allunga con acqua e cuoci la pasta dentro."
+        "nome": "Zuppa espressa di ceci, rosmarino e pasta corta",
+        "proteina": "Ceci (barattolo)", "carbo": "Pasta corta (Fusilli/Penne)", "verdura": "Spinaci freschi",
+        "tempo": "20 min", "difficoltà": "Facile",
+        "passaggi": "1. In una pentola fai un soffritto veloce con aglio, rosmarino tritato e un pizzico di peperoncino.\n2. Aggiungi i ceci scolati e metà acqua.\n3. Schiaccia una parte di ceci con la forchetta per creare una cremina.\n4. Butta la pasta direttamente nella pentola allungando con acqua bollente finché è cotta."
     }
 ]
 
 RICETTE_PRANZO = [
     {
-        "nome": "Riso basmati ripassato con straccetti di tacchino, zucchine e scorza di limone",
-        "proteina": "Tacchino", "carbo": "Riso Basmati",
-        "porzione_prot": 150, "porzione_carbo": 80
+        "nome": "Riso basmati ripassato con straccetti di tacchino, zucchine e limone",
+        "proteina": "Tacchino (Straccetti)", "carbo": "Riso Basmati", "verdura": "Zucchine",
+        "tempo": "15 min (Schiscetta da scaldare)",
+        "passaggi": "1. Taglia le zucchine a rondelle sottili.\n2. In padella salta gli straccetti di tacchino con le zucchine.\n3. Unisci il riso basmati già cotto, un goccio d'olio e scorza di limone grattugiata.\n4. Metti nella schiscetta (al microonde: 2 minuti a media potenza)."
     },
     {
-        "nome": "Fusilli integrali con crema di ceci, pepe nero e rosmarino croccante",
-        "proteina": "Ceci", "carbo": "Pasta",
-        "porzione_prot": 120, "porzione_carbo": 80
+        "nome": "Pasta fredda/tiepida con crema di ceci, pepe nero e rosmarino",
+        "proteina": "Ceci (barattolo)", "carbo": "Pasta corta (Fusilli/Penne)", "verdura": "Spinaci freschi",
+        "tempo": "15 min (Schiscetta)",
+        "passaggi": "1. Frulla i ceci con un filo d'olio, sale e pepe nero.\n2. Scola la pasta al dente e condiscila con la crema di ceci e foglioline di spinaci freschi.\n3. Perfetta da scaldare al microonde o mangiare tiepida."
     },
     {
-        "nome": "Insalata tiepida di patate, bocconcini di pollo dorati, origano e pomodorini",
-        "proteina": "Pollo", "carbo": "Patate",
-        "porzione_prot": 150, "porzione_carbo": 200
+        "nome": "Insalata tiepida di patate, bocconcini di pollo dorati e pomodorini",
+        "proteina": "Pollo (Petto/Bocconcini)", "carbo": "Patate", "verdura": "Pomodorini",
+        "tempo": "20 min (Schiscetta)",
+        "passaggi": "1. Taglia e cuoci le patate a cubetti in padella.\n2. Rosola i bocconcini di pollo con origano.\n3. Unisci i pomodorini freschi a metà. Ottima sia calda che tiepida."
     },
     {
-        "nome": "Crostini di pane tostato con cannellini all'uccelletto (pomodoro, salvia, aglio) e lonza",
-        "proteina": "Fagioli Canellini/Borbotti", "carbo": "Pane / Crostini",
-        "porzione_prot": 120, "porzione_carbo": 100
+        "nome": "Crostini toscani con cannellini all'uccelletto e lonza",
+        "proteina": "Fagioli Cannellini (barattolo)", "carbo": "Pane di grano duro / Crostini", "verdura": "Pomodorini",
+        "tempo": "15 min (Schiscetta)",
+        "passaggi": "1. In padella scalda i fagioli cannellini con un cucchiaio di passata di pomodoro o pomodorini, aglio e salvia.\n2. Taglia la lonza di maiale a listarelle e scottala velocemente.\n3. Componi la schiscetta mettendo i crostini di pane alla base e coprendo con i fagioli e la carne."
     },
     {
-        "nome": "Wrap/Piadina integrale con macinato di manzo speziato al timo, insalata e maionese leggera",
-        "proteina": "Manzo (Macinato/Bistecca)", "carbo": "Pane / Crostini",
-        "porzione_prot": 130, "porzione_carbo": 100
+        "nome": "Wrap/Piadina arrotolata con macinato di manzo speziato e verdure",
+        "proteina": "Manzo (Macinato magro)", "carbo": "Piadine / Wrap integrali", "verdura": "Spinaci freschi",
+        "tempo": "15 min (Schiscetta)",
+        "passaggi": "1. Rosola il macinato di manzo in padella con timo, sale e pepe.\n2. Scalda la piadina, farciscila con spinaci freschi e il macinato caldo, poi arrotolala.\n3. Tagliala a metà nella schiscetta."
     }
 ]
 
 # --- TABS APP ---
 tab1, tab2, tab3 = st.tabs(["📅 Menù Settimanale & Spesa", "🧊 Svuota Frigo", "📖 Ricettario Semplice"])
 
+# Inizializza session state per il menù
+if "menu_settimana" not in st.session_state:
+    st.session_state["menu_settimana"] = None
+
 # --- TAB 1: MENU & SPESA ---
 with tab1:
     st.header("Generatore di Menù per il Lavoro")
     
-    if st.button("🎲 Genera Menù della Settimana (Lunedì - Venerdì)"):
+    col_btn1, col_btn2 = st.columns([1, 3])
+    with col_btn1:
+        genera_cliccato = st.button("🎲 Genera / Rigenera Menù")
+    
+    if genera_cliccato or st.session_state["menu_settimana"] is None:
         giorni = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì"]
         menu = []
-        
-        # Selezione casuale senza ripetizioni consecutive di proteina
         proteine_usate = []
-        spesa_totale = {}
-
+        
         for g in giorni:
-            # Scegli ricette garantendo rotazione
-            cena_scelta = random.choice([r for r in RICETTE_CENA if r["proteina"] not in proteine_usate[-1:]])
-            pranzo_scelto = random.choice([r for r in RICETTE_PRANZO if r["proteina"] != cena_scelta["proteina"]])
-            
+            # Filtra per evitare ripetizioni consecutive di proteina nella cena
+            censioni_disponibili = [r for r in RICETTE_CENA if not proteine_usate or r["proteina"] != proteine_usate[-1]]
+            cena_scelta = random.choice(censioni_disponibili)
             proteine_usate.append(cena_scelta["proteina"])
+            
+            # Scegli un pranzo che non sia identico alla proteina della sera stessa
+            pranzi_disponibili = [r for r in RICETTE_PRANZO if r["proteina"] != cena_scelta["proteina"]]
+            pranzo_scelto = random.choice(pranzi_disponibili)
             
             menu.append({
                 "Giorno": g,
-                "Pranzo (Schiscetta)": pranzo_scelto["nome"],
-                "Cena (Fresca 30min)": cena_scelta["nome"],
-                "Aromi Cena": cena_scelta["aromi"]
+                "Pranzo": pranzo_scelto,
+                "Cena": cena_scelta
             })
+        
+        st.session_state["menu_settimana"] = menu
+
+    # Mostra il menù generato
+    if st.session_state["menu_settimana"]:
+        st.subheader("📋 Il tuo Programma Settimanale (Lunedì - Venerdì)")
+        
+        # Dizionario per accumulare il fabbisogno di spesa
+        fabbisogno_spesa = {}
+        
+        for item in st.session_state["menu_settimana"]:
+            giorno = item["Giorno"]
+            pranzo = item["Pranzo"]
+            cena = item["Cena"]
             
-            # Calcolo quantitativi per la spesa
-            for item in [cena_scelta, pranzo_scelto]:
-                prot = item["proteina"]
-                q = item["porzione_prot"]
-                spesa_totale[prot] = spesa_totale.get(prot, 0) + q
+            # Raccogli ingredienti per la spesa
+            for p_item in [pranzo["proteina"], pranzo["carbo"], pranzo.get("verdura", "Spinaci freschi")]:
+                if p_item in ANAGRAFICA_SPESA:
+                    fabbisogno_spesa[p_item] = fabbisogno_spesa.get(p_item, 0) + 1
+            for c_item in [cena["proteina"], cena["carbo"], cena["verdura"]]:
+                if c_item in ANAGRAFICA_SPESA:
+                    fabbisogno_spesa[c_item] = fabbisogno_spesa.get(c_item, 0) + 1
 
-        st.session_state["menu"] = menu
-        st.session_state["spesa"] = spesa_totale
+            with st.expander(f"📌 {giorni if 'giorni' in locals() else ''} - {giorno}"):
+                c1, c2 = st.columns(2)
+                
+                with c1:
+                    st.markdown(f"**☀️ Pranzo (Schiscetta):** {pranzo['nome']}")
+                    with st.expander("🔍 Dettagli & Ricetta Pranzo"):
+                        st.write(f"⏱ **Tempo:** {pranzo['tempo']}")
+                        st.write(f"🥩 **Proteina:** {pranzo['proteina']} | 🌾 **Carbo:** {pranzo['carbo']}")
+                        st.text("Preparazione:\n" + pranzo["passaggi"])
+                
+                with c2:
+                    st.markdown(f"**🌙 Cena (Fresca):** {cena['nome']}")
+                    with st.expander("🔍 Dettagli & Ricetta Cena"):
+                        st.write(f"⏱ **Tempo:** {cena['tempo']} | 📊 **Difficoltà:** {cena['difficoltà']}")
+                        st.write(f"🌿 **Aromi consigliati:** Aglio, rosmarino, salvia, vino bianco, olio EVO")
+                        st.text("Preparazione:\n" + cena["passaggi"])
 
-    if "menu" in st.session_state:
-        st.subheader("📋 Il tuo programma settimanale")
-        for item in st.session_state["menu"]:
-            with st.expander(f"📌 {item['Giorno']}"):
-                st.write(f"**☀️ Pranzo:** {item['Pranzo (Schiscetta)']}")
-                st.write(f"**🌙 Cena:** {item['Cena (Fresca 30min)']}")
-                st.caption(f"🌿 Aromi da usare la sera: {item['Aromi Cena']}")
-        
         st.markdown("---")
-        st.subheader("🛒 Lista della Spesa Automatica")
+        st.subheader("🛒 Lista della Spesa Intelligente")
+        st.info("💡 Spunta gli ingredienti che **hai già in casa**: il prezzo totale si aggiornerà in tempo reale!")
+
+        # Organizza la spesa per categorie con checkbox
+        totale_effettivo = 0.0
         
-        costo_stimato_totale = 0.0
-        col1, col2 = st.columns(2)
+        # Raggruppa per categoria
+        categorie = {"Proteine": [], "Carboidrati": [], "Verdure": []}
+        for ing in fabbisogno_spesa.keys():
+            cat = ANAGRAFICA_SPESA[ing]["categoria"]
+            categorie[cat].append(ing)
+
+        col_s1, col_s2, col_s3 = st.columns(3)
+        colonne_cat = [col_s1, col_s2, col_s3]
         
-        with col1:
-            st.write("**Ingredienti Proteici da acquistare:**")
-            for ing, grammi in st.session_state["spesa"].items():
-                if ing in PROTEINE:
-                    prezzo_kg = PROTEINE[ing].get("prezzo_al_kg", 0)
-                    costo = (grammi / 1000) * prezzo_kg
-                    costo_stimato_totale += costo
-                    st.write(f"- **{ing}**: {grammi}g (circa €{costo:.2f})")
-        
-        with col2:
-            st.write("**Basi da Dispensa & Verdure:**")
-            st.write("- Riso Basmati, Pasta corta, Pane di grano duro")
-            st.write("- Zucchine, Carote, Finocchi, Spinaci, Melanzane")
-            st.write("- Aromi toscani: Rosmarino fresco, Salvia, Aglio, Timo, Limoni, Vino bianco")
-            st.info(f"💰 **Costo stimato proteina fresca:** ~€{costo_stimato_totale:.2f} / settimana")
+        # Salviamo lo stato dei checkbox nella sessione per renderli interattivi
+        if "checkbox_spesa" not in st.session_state:
+            st.session_state["checkbox_spesa"] = {}
+
+        idx = 0
+        for cat, ingredienti in categorie.items():
+            with colonne_cat[idx]:
+                st.markdown(f"### 📦 {cat}")
+                for ing in sorted(ingredienti):
+                    info = ANAGRAFICA_SPESA[ing]
+                    prezzo_unitario = info["prezzo_unita"]
+                    unita_misura = info["unita"]
+                    
+                    # Chiave unica per il checkbox
+                    ck_key = f"spesa_{ing}"
+                    
+                    # Di default è spuntato (fai finta che ce l'hai o da comprare? Meglio non spuntato così si compra, oppure spuntato se l'utente vuole escludere. Facciamo non spuntato = da comprare)
+                    gia_in_casa = st.checkbox(f"**{ing}** (~€{prezzo_unitario:.2f} / {unita_misura})", key=ck_key)
+                    
+                    if not gia_in_casa:
+                        totale_effettivo += prezzo_unitario
+            idx += 1
+
+        st.markdown("---")
+        st.metric(label="💰 Costo Totale Stimato della Spesa da Fare", value=f"€ {totale_effettivo:.2f}")
 
 # --- TAB 2: SVUOTA FRIGO ---
 with tab2:
     st.header("🧊 Svuota Frigo Smart")
-    st.write("Seleziona gli ingredienti che hai in frigo o dispensa per trovare cosa cucinare stasera:")
+    st.write("Seleziona cosa ti è rimasto in giro tra frigo e dispensa per trovare un'idea al volo:")
     
-    ing_selezionati = st.multiselect(
-        "Cosa hai a disposizione?",
-        ["Pollo", "Tacchino", "Maiale", "Manzo", "Ceci", "Fagioli", "Zucchine", "Patate", "Pasta", "Riso"]
-    )
+    tutti_ingredienti = list(ANAGRAFICA_SPESA.keys())
+    ing_selezionati = st.multiselect("Seleziona ingredienti disponibili:", tutti_ingredienti)
     
-    if st.button("🔎 Trova Ricetta"):
+    if st.button("🔎 Genera Piatto Svuota-Frigo"):
         if ing_selezionati:
-            st.success(f"Con **{', '.join(ing_selezionati)}** puoi fare:")
+            st.success(f"Combinazione trovata con: {', '.join(ing_selezionati)}")
             st.markdown("""
-            * **Padellata Tuscan-Style:** Rosola la proteina scelta con un trito di aglio e rosmarino. Aggiungi le verdure a cubetti, sfuma con un goccio di vino bianco e servi accompagnato da riso o pane tostato.
-            * **Pasta Spadellata Creamy:** Frulla la metà dei legumi con olio, salvia e pepe. Salta la pasta in padella con la crema ottenuta e i pezzetti di carne dorati a parte.
+            **🍳 Idea Chef Tuscan-Style:**
+            * **Padella rapida:** Taglia a cubetti gli ingredienti proteici e le verdure che hai selezionato. Scalda un filo d'olio in padella con uno spicchio d'aglio e un rametto di rosmarino o salvia. Fai saltare a fuoco vivo per 10 minuti, sfuma con un goccio di vino bianco se ce l'hai, e unisci la pasta o il riso lessato a parte. 
+            * **Tocco finale:** Un giro d'olio extravergine a crudo e una spolverata di pepe nero.
             """)
         else:
-            st.warning("Seleziona almeno un ingrediente!")
+            st.warning("Seleziona almeno un ingrediente per ricevere un'idea!")
 
 # --- TAB 3: RICETTARIO ---
 with tab3:
-    st.header("📖 Consigli di Cottura Veloci")
+    st.header("📖 Libretto Consigli & Trucchi in Cucina")
     st.markdown("""
-    * **Il segreto della rosolatura (Reazione di Maillard):** Per non fare la carne 'lessa', asciuga sempre la superficie con carta da cucina prima di metterla nella padella ben calda con olio e rosmarino/salvia.
-    * **Schiscetta perfetta al microonde:** Aggiungi sempre un cucchiaio d'acqua o un filo d'olio sulla schiscetta prima di scaldarla e usa la potenza media (600W) per 2 minuti invece del massimo per evitare di seccare la carne.
+    * **🔥 La Reazione di Maillard (La crosticina saporita):** Quando cuoci pollo, tacchino o maiale in padella, ricordati di tamponarli con carta da cucina prima di metterli in padella ben calda. Niente carne lessa o gommosa!
+    * **🌿 Aromi Toscani Sempre Pronti:** Tieni sempre a portata di mano rosmarino, salvia e aglio. Cambiano completamente il volto a qualsiasi piatto povero o schiscetta da microonde.
+    * **🍱 Gestione della Schiscetta al Microonde:** Quando riscaldi il pranzo in ufficio, aggiungi sempre un cucchiaino d'acqua o un filo d'olio sopra la pasta/riso e scalda a potenza media (circa 600W) per 2 minuti coprendo il contenitore, così non si secca la carne.
     """)
