@@ -100,57 +100,62 @@ RICETTE_PRANZO = [
     }
 ]
 
+# --- GESTIONE PERSISTENZA STATO (SESSION STATE) ---
+if "menu_attivo" not in st.session_state:
+    st.session_state["menu_attivo"] = None
+
+def genera_nuovo_menu():
+    giorni = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì"]
+    menu = []
+    proteine_usate = []
+    
+    for g in giorni:
+        censioni_disponibili = [r for r in RICETTE_CENA if not proteine_usate or r["proteina"] != proteine_usate[-1]]
+        cena_scelta = random.choice(censioni_disponibili)
+        proteine_usate.append(cena_scelta["proteina"])
+        
+        pranzi_disponibili = [r for r in RICETTE_PRANZO if r["proteina"] != cena_scelta["proteina"]]
+        pranzo_scelto = random.choice(pranzi_disponibili)
+        
+        menu.append({
+            "Giorno": g,
+            "Pranzo": pranzo_scelto,
+            "Cena": cena_scelta
+        })
+    st.session_state["menu_attivo"] = menu
+    # Resetta eventuali spunte della spesa precedenti quando si cambia settimana
+    keys_da_rimuovere = [k for k in st.session_state.keys() if k.startswith("spesa_")]
+    for k in keys_da_rimuovere:
+        del st.session_state[k]
+
+# Genera automaticamente un menù iniziale se non esiste
+if st.session_state["menu_attivo"] is None:
+    genera_nuovo_menu()
+
 # --- TABS APP ---
 tab1, tab2, tab3 = st.tabs(["📅 Menù Settimanale & Spesa", "🧊 Svuota Frigo", "📖 Ricettario Semplice"])
-
-# Inizializza session state per il menù
-if "menu_settimana" not in st.session_state:
-    st.session_state["menu_settimana"] = None
 
 # --- TAB 1: MENU & SPESA ---
 with tab1:
     st.header("Generatore di Menù per il Lavoro")
     
-    col_btn1, col_btn2 = st.columns([1, 3])
-    with col_btn1:
-        genera_cliccato = st.button("🎲 Genera / Rigenera Menù")
-    
-    if genera_cliccato or st.session_state["menu_settimana"] is None:
-        giorni = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì"]
-        menu = []
-        proteine_usate = []
-        
-        for g in giorni:
-            # Filtra per evitare ripetizioni consecutive di proteina nella cena
-            censioni_disponibili = [r for r in RICETTE_CENA if not proteine_usate or r["proteina"] != proteine_usate[-1]]
-            cena_scelta = random.choice(censioni_disponibili)
-            proteine_usate.append(cena_scelta["proteina"])
-            
-            # Scegli un pranzo che non sia identico alla proteina della sera stessa
-            pranzi_disponibili = [r for r in RICETTE_PRANZO if r["proteina"] != cena_scelta["proteina"]]
-            pranzo_scelto = random.choice(pranzi_disponibili)
-            
-            menu.append({
-                "Giorno": g,
-                "Pranzo": pranzo_scelto,
-                "Cena": cena_scelta
-            })
-        
-        st.session_state["menu_settimana"] = menu
+    # Sezione di controllo per la pianificazione settimanale
+    with st.expander("⚙️ Gestione Pianificazione Settimanale (Clicca per rigenerare il menù nel fine settimana)"):
+        st.write("Il menù rimane bloccato finché non decidi di pianificare la settimana nuova (es. il venerdì sera o nel weekend).")
+        if st.button("🔄 Genera Nuovo Menù per la prossima settimana"):
+            genera_nuovo_menu()
+            st.rerun()
 
-    # Mostra il menù generato
-    if st.session_state["menu_settimana"]:
+    if st.session_state["menu_attivo"]:
         st.subheader("📋 Il tuo Programma Settimanale (Lunedì - Venerdì)")
         
-        # Dizionario per accumulare il fabbisogno di spesa
         fabbisogno_spesa = {}
         
-        for item in st.session_state["menu_settimana"]:
+        for item in st.session_state["menu_attivo"]:
             giorno = item["Giorno"]
             pranzo = item["Pranzo"]
             cena = item["Cena"]
             
-            # Raccogli ingredienti per la spesa
             for p_item in [pranzo["proteina"], pranzo["carbo"], pranzo.get("verdura", "Spinaci freschi")]:
                 if p_item in ANAGRAFICA_SPESA:
                     fabbisogno_spesa[p_item] = fabbisogno_spesa.get(p_item, 0) + 1
@@ -158,7 +163,7 @@ with tab1:
                 if c_item in ANAGRAFICA_SPESA:
                     fabbisogno_spesa[c_item] = fabbisogno_spesa.get(c_item, 0) + 1
 
-            with st.expander(f"📌 {giorni if 'giorni' in locals() else ''} - {giorno}"):
+            with st.expander(f"📌 {giorno}"):
                 c1, c2 = st.columns(2)
                 
                 with c1:
@@ -179,10 +184,8 @@ with tab1:
         st.subheader("🛒 Lista della Spesa Intelligente")
         st.info("💡 Spunta gli ingredienti che **hai già in casa**: il prezzo totale si aggiornerà in tempo reale!")
 
-        # Organizza la spesa per categorie con checkbox
         totale_effettivo = 0.0
         
-        # Raggruppa per categoria
         categorie = {"Proteine": [], "Carboidrati": [], "Verdure": []}
         for ing in fabbisogno_spesa.keys():
             cat = ANAGRAFICA_SPESA[ing]["categoria"]
@@ -191,10 +194,6 @@ with tab1:
         col_s1, col_s2, col_s3 = st.columns(3)
         colonne_cat = [col_s1, col_s2, col_s3]
         
-        # Salviamo lo stato dei checkbox nella sessione per renderli interattivi
-        if "checkbox_spesa" not in st.session_state:
-            st.session_state["checkbox_spesa"] = {}
-
         idx = 0
         for cat, ingredienti in categorie.items():
             with colonne_cat[idx]:
@@ -204,10 +203,7 @@ with tab1:
                     prezzo_unitario = info["prezzo_unita"]
                     unita_misura = info["unita"]
                     
-                    # Chiave unica per il checkbox
                     ck_key = f"spesa_{ing}"
-                    
-                    # Di default è spuntato (fai finta che ce l'hai o da comprare? Meglio non spuntato così si compra, oppure spuntato se l'utente vuole escludere. Facciamo non spuntato = da comprare)
                     gia_in_casa = st.checkbox(f"**{ing}** (~€{prezzo_unitario:.2f} / {unita_misura})", key=ck_key)
                     
                     if not gia_in_casa:
